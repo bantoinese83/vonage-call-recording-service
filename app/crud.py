@@ -6,8 +6,9 @@ from sqlalchemy import func
 from sqlmodel import select
 
 from app.aws_setup import upload_file_to_s3, AWS_BUCKET_NAME
-from app.database import async_session, CallState
+from app.database import async_session
 from app.enums import CallStatus
+from app.models import CallState
 
 
 async def create_call_state(call_uuid: str, status: str):
