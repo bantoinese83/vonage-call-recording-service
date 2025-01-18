@@ -1,11 +1,8 @@
 import pytest
 from fastapi import HTTPException
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+from jose import jwt
 from passlib.context import CryptContext
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from unittest.mock import patch, MagicMock
 
 from app.auth import (
     create_user,
@@ -19,7 +16,7 @@ from app.auth import (
     Token,
     TokenData,
 )
-from app.database import async_session
+from app.database import async_session, init_db
 from app.models import User as UserModel
 from app.schemas import UserCreate
 
@@ -29,6 +26,11 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
+
+
+@pytest.fixture(scope="module", autouse=True)
+async def setup_database():
+    await init_db()
 
 
 @pytest.mark.asyncio

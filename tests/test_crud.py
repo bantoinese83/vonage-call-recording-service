@@ -1,6 +1,6 @@
 import pytest
 from sqlalchemy import select, delete
-from app.database import async_session, CallState
+from app.database import async_session
 from app.crud import (
     create_call_state,
     get_call_state,
@@ -10,6 +10,8 @@ from app.crud import (
     create_recording_file,
 )
 from app.enums import CallStatus
+from app.models import CallState
+
 
 @pytest.fixture(autouse=True)
 async def clear_database():
