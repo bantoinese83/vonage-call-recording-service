@@ -6,10 +6,12 @@ from fastapi.testclient import TestClient
 from sqlalchemy import delete
 from sqlmodel import select
 
-from app.database import async_session, CallState, User
+from app.database import async_session, User
+from app.models import CallState
 from main import app
 
 client = TestClient(app)
+
 
 @pytest.fixture(autouse=True)
 async def clear_database():
@@ -18,6 +20,7 @@ async def clear_database():
             await session.execute(delete(CallState))
             await session.execute(delete(User))
             await session.commit()
+
 
 @pytest.mark.asyncio
 async def test_answer_call():
@@ -47,18 +50,23 @@ async def test_answer_call():
     # Verify that the call state is stored in the database
     async with async_session() as session:
         async with session.begin():
-            result = await session.execute(select(CallState).where(CallState.uuid == "test-uuid"))
+            result = await session.execute(
+                select(CallState).where(CallState.uuid == "test-uuid")
+            )
             call_state = result.scalar_one_or_none()
             assert call_state is not None
             assert call_state.status == "recording"
+
 
 def test_answer_call_missing_uuid():
     response = client.post("/api/v1/calls/answer")
     assert response.status_code == 422  # Unprocessable Entity
 
+
 def test_answer_call_invalid_uuid():
     response = client.post("/api/v1/calls/answer", params={"uuid": ""})
     assert response.status_code == 422  # Unprocessable Entity
+
 
 @patch("app.services.transcribe_and_translate", return_value=None)
 @pytest.mark.asyncio
@@ -71,6 +79,7 @@ async def test_handle_recording_event(mock_transcribe_and_translate):
     response = client.post("/api/v1/calls/recordings", json=event_data)
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
 
 @pytest.mark.asyncio
 async def test_handle_call_event():
@@ -85,6 +94,7 @@ async def test_handle_call_event():
             call_state = await session.get(CallState, "test-uuid")
             assert call_state is None
 
+
 @pytest.mark.asyncio
 async def test_get_dashboard():
     response = client.get("/api/v1/dashboard/data")
@@ -96,12 +106,17 @@ async def test_get_dashboard():
     assert "success_rate" in data
     assert "average_duration" in data
 
+
 @pytest.mark.asyncio
 async def test_get_recordings():
     # First, sign up a new user
     response = client.post(
         "/api/v1/auth/signup",
-        json={"username": "johndoe", "password": "secret", "email": "johndoe@example.com"}
+        json={
+            "username": "johndoe",
+            "password": "secret",
+            "email": "johndoe@example.com",
+        },
     )
     assert response.status_code == 200
 
@@ -126,7 +141,10 @@ async def test_get_recordings():
     assert "page" in data
     assert "limit" in data
 
-@patch("app.aws_setup.upload_file_to_s3", return_value="http://mock_s3_url/recording.mp3")
+
+@patch(
+    "app.aws_setup.upload_file_to_s3", return_value="http://mock_s3_url/recording.mp3"
+)
 @pytest.mark.asyncio
 async def test_create_recording(mock_upload_file_to_s3):
     with open("test_audio.wav", "wb") as f:
@@ -143,11 +161,16 @@ async def test_create_recording(mock_upload_file_to_s3):
     assert data["status"] == "success"
     assert "recording_id" in data
 
+
 def test_login_for_access_token():
     # First, sign up a new user
     response = client.post(
         "/api/v1/auth/signup",
-        json={"username": "johndoe", "password": "secret", "email": "johndoe@example.com"}
+        json={
+            "username": "johndoe",
+            "password": "secret",
+            "email": "johndoe@example.com",
+        },
     )
     assert response.status_code == 200
 
@@ -161,22 +184,26 @@ def test_login_for_access_token():
     assert "access_token" in data
     assert data["token_type"] == "bearer"
 
+
 def test_login_for_access_token_invalid_credentials():
     response = client.post(
         "/api/v1/auth/login",
         data={"username": "johndoe", "password": "wrongpassword"},
     )
     assert response.status_code == 401
-    assert response.json() == {
-        "detail": "Incorrect username or password"
-    }
+    assert response.json() == {"detail": "Incorrect username or password"}
+
 
 @pytest.mark.asyncio
 async def test_read_users_me():
     # First, sign up a new user
     response = client.post(
         "/api/v1/auth/signup",
-        json={"username": "johndoe", "password": "secret", "email": "johndoe@example.com"}
+        json={
+            "username": "johndoe",
+            "password": "secret",
+            "email": "johndoe@example.com",
+        },
     )
     assert response.status_code == 200
 
@@ -199,10 +226,9 @@ async def test_read_users_me():
     assert data["full_name"] == "John Doe"
     assert data["disabled"] == False
 
+
 @pytest.mark.asyncio
 async def test_read_users_me_unauthorized():
     response = client.get("/api/v1/auth/user")
     assert response.status_code == 401
-    assert response.json() == {
-        "detail": "Not authenticated"
-    }
+    assert response.json() == {"detail": "Not authenticated"}
