@@ -13,7 +13,6 @@ from app.auth import (
     Token,
     User,
     ACCESS_TOKEN_EXPIRE_MINUTES,
-    fake_users_db,
     create_user,
 )
 from app.decorators import handle_exceptions
@@ -39,12 +38,7 @@ router = APIRouter()
     description="Register a new user by providing username, password, and optional details.",
 )
 async def sign_up(user: UserCreate):
-    if user.username in fake_users_db:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already registered",
-        )
-    new_user = create_user(fake_users_db, user)
+    new_user = await create_user(user)
     return new_user
 
 
@@ -56,7 +50,7 @@ async def sign_up(user: UserCreate):
     description="Authenticate user and return a JWT token.",
 )
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = authenticate_user(fake_users_db, form_data.username, form_data.password)
+    user = await authenticate_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

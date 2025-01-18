@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import delete
 from sqlmodel import select
 
-from app.database import async_session, CallState
+from app.database import async_session, CallState, User
 from main import app
 
 client = TestClient(app)
@@ -16,6 +16,7 @@ async def clear_database():
     async with async_session() as session:
         async with session.begin():
             await session.execute(delete(CallState))
+            await session.execute(delete(User))
             await session.commit()
 
 @pytest.mark.asyncio
@@ -97,7 +98,14 @@ async def test_get_dashboard():
 
 @pytest.mark.asyncio
 async def test_get_recordings():
-    # First, get a token
+    # First, sign up a new user
+    response = client.post(
+        "/api/v1/auth/signup",
+        json={"username": "johndoe", "password": "secret", "email": "johndoe@example.com"}
+    )
+    assert response.status_code == 200
+
+    # Then, get a token
     response = client.post(
         "/api/v1/auth/login",
         data={"username": "johndoe", "password": "secret"},
@@ -136,6 +144,14 @@ async def test_create_recording(mock_upload_file_to_s3):
     assert "recording_id" in data
 
 def test_login_for_access_token():
+    # First, sign up a new user
+    response = client.post(
+        "/api/v1/auth/signup",
+        json={"username": "johndoe", "password": "secret", "email": "johndoe@example.com"}
+    )
+    assert response.status_code == 200
+
+    # Then, get a token
     response = client.post(
         "/api/v1/auth/login",
         data={"username": "johndoe", "password": "secret"},
@@ -157,7 +173,14 @@ def test_login_for_access_token_invalid_credentials():
 
 @pytest.mark.asyncio
 async def test_read_users_me():
-    # First, get a token
+    # First, sign up a new user
+    response = client.post(
+        "/api/v1/auth/signup",
+        json={"username": "johndoe", "password": "secret", "email": "johndoe@example.com"}
+    )
+    assert response.status_code == 200
+
+    # Then, get a token
     response = client.post(
         "/api/v1/auth/login",
         data={"username": "johndoe", "password": "secret"},

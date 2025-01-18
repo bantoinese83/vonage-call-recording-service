@@ -5,7 +5,11 @@ from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
+from app.database import async_session
+from app.models import User as UserModel
 from app.schemas import UserCreate
 
 SECRET_KEY = "your_secret_key"
@@ -24,23 +28,12 @@ class User(BaseModel):
 class UserInDB(User):
     hashed_password: str
 
-fake_users_db = {
-    "johndoe": {
-        "username": "johndoe",
-        "full_name": "John Doe",
-        "email": "johndoe@example.com",
-        "hashed_password": pwd_context.hash("secret"),
-        "disabled": False,
-    }
-}
-def create_user(db, user: UserCreate):
+def create_user(user: UserCreate):
     hashed_password = get_password_hash(user.password)
     user_dict = user.dict()
     user_dict["hashed_password"] = hashed_password
     del user_dict["password"]
-    db[user.username] = user_dict
-    return UserInDB(**user_dict)
-
+    return UserModel(**user_dict)
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
@@ -48,13 +41,14 @@ def verify_password(plain_password, hashed_password):
 def get_password_hash(password):
     return pwd_context.hash(password)
 
-def get_user(db, username: str):
-    if username in db:
-        user_dict = db[username]
-        return UserInDB(**user_dict)
+async def get_user(username: str):
+    async with async_session() as session:
+        result = await session.execute(select(UserModel).where(UserModel.username == username))
+        user = result.scalars().first()
+        return user
 
-def authenticate_user(fake_db, username: str, password: str):
-    user = get_user(fake_db, username)
+async def authenticate_user(username: str, password: str):
+    user = await get_user(username)
     if not user:
         return False
     if not verify_password(password, user.hashed_password):
@@ -85,7 +79,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         token_data = TokenData(username=username)
     except JWTError:
         raise credentials_exception
-    user = get_user(fake_users_db, username=token_data.username)
+    user = await get_user(username=token_data.username)
     if user is None:
         raise credentials_exception
     return user
