@@ -16,5 +16,9 @@ VONAGE_API_SECRET = os.getenv("VONAGE_API_SECRET")
 VONAGE_NUMBER = os.getenv("VONAGE_NUMBER")
 
 # Validate Vonage environment variables
-if not all([VONAGE_API_KEY, VONAGE_API_SECRET, VONAGE_NUMBER]):
-    raise ValueError("Missing Vonage environment variables.")
+if not VONAGE_API_KEY:
+    raise ValueError("Missing Vonage API key.")
+if not VONAGE_API_SECRET:
+    raise ValueError("Missing Vonage API secret.")
+if not VONAGE_NUMBER:
+    raise ValueError("Missing Vonage number.")

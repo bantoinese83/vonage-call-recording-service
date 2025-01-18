@@ -36,7 +36,7 @@ async def setup_database():
 @pytest.mark.asyncio
 async def test_create_user():
     user_create = UserCreate(username="testuser", password="testpassword")
-    user = create_user(user_create)
+    user = await create_user(user_create)
     assert user.username == "testuser"
     assert verify_password("testpassword", user.hashed_password)
 

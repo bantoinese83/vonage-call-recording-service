@@ -13,4 +13,4 @@ def test_invalid_environment_variables(monkeypatch):
     monkeypatch.setenv("VONAGE_NUMBER", "")
     
     with pytest.raises(ValueError, match="Missing Vonage environment variables."):
-        from app.config import VONAGE_API_KEY, VONAGE_API_SECRET, VONAGE_NUMBER
+        import app.config
