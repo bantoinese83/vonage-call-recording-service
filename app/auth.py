@@ -12,7 +12,7 @@ from app.database import async_session
 from app.models import User as UserModel
 from app.schemas import UserCreate
 
-SECRET_KEY = secrets.token_urlsafe(32)
+SECRET_KEY = "your_secret_key"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -25,12 +25,18 @@ class User(BaseModel):
     full_name: Optional[str] = None
     disabled: Optional[bool] = None
 
-def create_user(user: UserCreate):
+async def create_user(user: UserCreate):
     hashed_password = get_password_hash(user.password)
     user_dict = user.model_dump()
     user_dict["hashed_password"] = hashed_password
     del user_dict["password"]
-    return UserModel(**user_dict)
+    new_user = UserModel(**user_dict)
+    async with async_session() as session:
+        async with session.begin():
+            session.add(new_user)
+            await session.commit()
+            await session.refresh(new_user)
+    return new_user
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)

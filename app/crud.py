@@ -3,7 +3,7 @@ import os
 import uuid
 
 from sqlalchemy import func
-from sqlmodel import select
+from sqlmodel import select, delete
 
 from app.aws_setup import upload_file_to_s3, AWS_BUCKET_NAME
 from app.database import async_session
@@ -14,8 +14,12 @@ from app.models import CallState
 async def create_call_state(call_uuid: str, status: str):
     async with async_session() as session:
         async with session.begin():
-            call_state = CallState(uuid=call_uuid, status=status)
-            session.add(call_state)
+            existing_call_state = await session.execute(
+                select(CallState).where(CallState.uuid == call_uuid)
+            )
+            if existing_call_state.scalar_one_or_none() is None:
+                call_state = CallState(uuid=call_uuid, status=status)
+                session.add(call_state)
 
 async def get_call_state(call_uuid: str):
     async with async_session() as session:
@@ -26,9 +30,7 @@ async def get_call_state(call_uuid: str):
 async def delete_call_state(call_uuid: str):
     async with async_session() as session:
         async with session.begin():
-            call_state = await session.get(CallState, call_uuid)
-            if call_state:
-                await session.delete(call_state)
+            await session.execute(delete(CallState).where(CallState.uuid == call_uuid))
 
 async def get_all_call_states():
     async with async_session() as session:
