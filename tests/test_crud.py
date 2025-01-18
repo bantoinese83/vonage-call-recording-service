@@ -1,6 +1,7 @@
 import pytest
 from sqlalchemy import select, delete
-from app.database import async_session, CallState
+from app.database import async_session
+from app.models import CallState
 from app.crud import (
     create_call_state,
     get_call_state,

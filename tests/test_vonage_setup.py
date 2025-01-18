@@ -3,7 +3,8 @@ from unittest.mock import patch, AsyncMock
 from app.vonage_setup import create_ncco, store_call_state, handle_recording, handle_call_event, transcribe_and_translate
 from fastapi import Request
 from app.enums import CallStatus
-from app.database import async_session, CallState
+from app.database import async_session
+from app.models import CallState
 from sqlalchemy import select, delete
 
 @pytest.fixture(autouse=True)

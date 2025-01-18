@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from app.main import app
+from main import app
 from app.auth import create_access_token
 from app.models import User
 from app.database import async_session
