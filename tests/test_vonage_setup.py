@@ -17,7 +17,7 @@ async def clear_database():
 
 @pytest.mark.asyncio
 async def test_create_ncco():
-    request = Request(scope={"type": "http", "base_url": "http://testserver"})
+    request = Request(scope={"type": "http", "base_url": "http://testserver", "headers": []})
     ncco = create_ncco(request)
     assert isinstance(ncco, list)
     assert len(ncco) == 3
@@ -66,7 +66,9 @@ async def test_handle_call_event():
 @patch("app.vonage_setup.upload_file_to_s3", return_value="http://mock_s3_url/recording.mp3")
 @patch("app.vonage_setup.Translator.translate", return_value=AsyncMock(text="translated text"))
 @patch("app.vonage_setup.sr.Recognizer.recognize_sphinx", return_value="transcribed text")
-async def test_transcribe_and_translate(mock_recognize_sphinx, mock_translate, mock_upload_file_to_s3):
+@patch("aiohttp.ClientSession.get", new_callable=AsyncMock)
+async def test_transcribe_and_translate(mock_get, mock_recognize_sphinx, mock_translate, mock_upload_file_to_s3):
+    mock_get.return_value.__aenter__.return_value.read.return_value = b"audio data"
     call_uuid = "test-uuid"
     recording_url = "http://testserver/recording.mp3"
     await store_call_state(call_uuid)

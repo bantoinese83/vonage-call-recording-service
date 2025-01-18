@@ -62,6 +62,6 @@ async def test_search_call_states():
 @pytest.mark.asyncio
 async def test_create_recording_file():
     audio_content = b"test audio content"
-    audio_file = type("File", (object,), {"file": type("File", (object,), {"read": lambda: audio_content})})()
+    audio_file = type("File", (object,), {"read": lambda: audio_content})()
     recording_id = await create_recording_file(audio_file, "test-caller", 60)
     assert recording_id is not None

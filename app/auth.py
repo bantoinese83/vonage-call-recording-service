@@ -47,7 +47,7 @@ def get_password_hash(password):
 async def get_user(username: str):
     async with async_session() as session:
         result = await session.execute(select(UserModel).where(UserModel.username == username))
-        user = result.scalars().first()
+        user = result.scalar_one_or_none()
         return user
 
 async def authenticate_user(username: str, password: str):

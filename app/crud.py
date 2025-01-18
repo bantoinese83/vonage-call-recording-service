@@ -20,6 +20,7 @@ async def create_call_state(call_uuid: str, status: str):
             if existing_call_state.scalar_one_or_none() is None:
                 call_state = CallState(uuid=call_uuid, status=status)
                 session.add(call_state)
+            await session.commit()
 
 async def get_call_state(call_uuid: str):
     async with async_session() as session:
@@ -31,6 +32,7 @@ async def delete_call_state(call_uuid: str):
     async with async_session() as session:
         async with session.begin():
             await session.execute(delete(CallState).where(CallState.uuid == call_uuid))
+            await session.commit()
 
 async def get_all_call_states():
     async with async_session() as session:
@@ -57,7 +59,7 @@ async def search_call_states(search: str, page: int, limit: int):
 async def create_recording_file(audio, caller_id: str, duration: int):
     filename = f"{uuid.uuid4()}.wav"
     with open(filename, "wb") as buffer:
-        buffer.write(audio.file.read())
+        buffer.write(await audio.read())
 
     s3_url = upload_file_to_s3(filename, AWS_BUCKET_NAME, filename)
 
@@ -71,6 +73,7 @@ async def create_recording_file(audio, caller_id: str, duration: int):
                 recording_url=s3_url,
             )
             session.add(new_call)
+            await session.commit()
 
     os.remove(filename)
     return new_call.uuid

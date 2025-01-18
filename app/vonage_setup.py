@@ -11,6 +11,7 @@ from googletrans import Translator
 import speech_recognition as sr
 from app.aws_setup import upload_file_to_s3, AWS_BUCKET_NAME
 from app.models import CallState
+import aiohttp
 
 auth = Auth(api_key=VONAGE_API_KEY, api_secret=VONAGE_API_SECRET)
 vonage_client = Vonage(auth=auth)
@@ -91,7 +92,15 @@ async def transcribe_and_translate(call_uuid: str, recording_url: str):
     recognizer = sr.Recognizer()
     translator = Translator()
     try:
-        with sr.AudioFile(recording_url) as source:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(recording_url) as response:
+                if response.status == 200:
+                    with open(f"{call_uuid}.wav", "wb") as f:
+                        f.write(await response.read())
+                else:
+                    raise HTTPException(status_code=500, detail="Failed to download recording")
+
+        with sr.AudioFile(f"{call_uuid}.wav") as source:
             audio = recognizer.record(source)
         transcript = recognizer.recognize_sphinx(audio)
         translation = await translator.translate(transcript, dest="es")
@@ -105,7 +114,7 @@ async def transcribe_and_translate(call_uuid: str, recording_url: str):
                     call_state.translation = translation_text
                     session.add(call_state)
 
-        s3_url = upload_file_to_s3(recording_url, AWS_BUCKET_NAME, f"{call_uuid}.mp3")
+        s3_url = upload_file_to_s3(f"{call_uuid}.wav", AWS_BUCKET_NAME, f"{call_uuid}.wav")
         logger.info(f"Audio file uploaded to S3: {s3_url}")
         logger.info(f"Transcript: {transcript}")
         logger.info(f"Translation: {translation_text}")

@@ -68,6 +68,8 @@ async def get_recordings_data(search: str, page: int, limit: int):
             duration=call.duration,
             caller_id=call.caller_id,
             status=call.status,
+            user_id=call.user_id,
+            user_role=call.user_role,
         )
         for call in paginated_call_states
     ]
