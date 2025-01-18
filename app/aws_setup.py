@@ -26,14 +26,8 @@ def upload_file_to_s3(file_path, bucket_name, s3_file_name):
         s3_client.upload_file(file_path, bucket_name, s3_file_name)
         logger.info(f"File {file_path} uploaded to S3 bucket {bucket_name} as {s3_file_name}")
         return f"https://{bucket_name}.s3.amazonaws.com/{s3_file_name}"
-    except FileNotFoundError:
-        logger.error(f"The file {file_path} was not found")
-        raise FileNotFoundError("The file was not found")
-    except NoCredentialsError:
-        logger.error("AWS credentials not available")
-        raise NoCredentialsError
-    except ClientError as e:
-        logger.error(f"Client error: {e}")
+    except (FileNotFoundError, NoCredentialsError, ClientError) as e:
+        logger.error(f"Error uploading file: {e}")
         raise
     except Exception as e:
         logger.error(f"An unexpected error occurred: {e}")

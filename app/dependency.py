@@ -20,7 +20,4 @@ async def get_recordings(
     current_user: User = Depends(get_current_active_user),
 ):
     recordings_data = await get_recordings_data(search, page, limit)
-    recordings_data["recordings"] = [
-        recording.dict() for recording in recordings_data["recordings"]
-    ]
     return JSONResponse(recordings_data)
